@@ -94,7 +94,7 @@ export default function StageSelectScreen({ navigation }: Props) {
                                     })
                                 }
                             >
-                                このステージで遊ぶ
+                                このステージをプレイ
                             </AppButton>
                         </Card.Content>
                     </Card>
