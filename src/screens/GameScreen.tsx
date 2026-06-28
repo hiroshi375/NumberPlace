@@ -1,7 +1,13 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { getCurrentUser } from "aws-amplify/auth";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
+import {
+    Alert,
+    ScrollView,
+    StyleSheet,
+    useWindowDimensions,
+    View,
+} from "react-native";
 import { Card, Text } from "react-native-paper";
 
 import AppButton from "../components/AppButton";
@@ -39,6 +45,11 @@ type StageData = {
 };
 
 export default function GameScreen({ route, navigation }: Props) {
+    const { width } = useWindowDimensions();
+
+    const screenHorizontalPadding = 8 * 2;
+    const boardSize = width - screenHorizontalPadding;
+
     const { stageId } = route.params;
 
     const [stage, setStage] = useState<StageData | null>(null);
@@ -451,6 +462,7 @@ export default function GameScreen({ route, navigation }: Props) {
                 selectedRow={selectedRow}
                 selectedCol={selectedCol}
                 onSelectCell={handleSelectCell}
+                boardSize={boardSize}
             />
 
             <NumberPad
@@ -476,29 +488,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#f5f7fa",
     },
-    content: {
-        padding: 16,
-        paddingBottom: 32,
-    },
     loadingContainer: {
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-    },
-    infoCard: {
-        marginBottom: 16,
-        borderRadius: 12,
-    },
-    stageTitle: {
-        fontSize: 20,
-        fontWeight: "700",
-        marginBottom: 8,
-        color: "#2f4050",
-    },
-    infoText: {
-        fontSize: 14,
-        color: "#4b5563",
-        marginBottom: 2,
     },
     clearText: {
         textAlign: "center",
@@ -507,7 +500,26 @@ const styles = StyleSheet.create({
         color: "#16a34a",
         marginBottom: 12,
     },
+    content: {
+        padding: 8,
+        paddingBottom: 24,
+    },
+    infoCard: {
+        marginBottom: 8,
+        borderRadius: 12,
+    },
+    stageTitle: {
+        fontSize: 16,
+        fontWeight: "700",
+        marginBottom: 4,
+        color: "#2f4050",
+    },
+    infoText: {
+        fontSize: 12,
+        color: "#4b5563",
+        marginBottom: 1,
+    },
     bottomActions: {
-        marginTop: 16,
+        marginTop: 8,
     },
 });

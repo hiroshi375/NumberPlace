@@ -15,6 +15,7 @@ type Props = {
     selectedRow: number | null;
     selectedCol: number | null;
     onSelectCell: (row: number, col: number) => void;
+    boardSize?: number;
 };
 
 export default function SudokuBoard({
@@ -25,7 +26,9 @@ export default function SudokuBoard({
     selectedRow,
     selectedCol,
     onSelectCell,
+    boardSize = 324,
 }: Props) {
+    const cellSize = boardSize / 9;
     const selectedValue =
         selectedRow !== null && selectedCol !== null
             ? board[selectedRow][selectedCol]
@@ -45,7 +48,15 @@ export default function SudokuBoard({
             : [];
 
     return (
-        <View style={styles.board}>
+        <View
+            style={[
+                styles.board,
+                {
+                    width: boardSize,
+                    height: boardSize,
+                },
+            ]}
+        >
             {board.map((rowValues, row) => (
                 <View key={row} style={styles.row}>
                     {rowValues.map((value, col) => {
@@ -105,6 +116,7 @@ export default function SudokuBoard({
                                 }
                                 isGiven={isGivenCell(puzzle, row, col)}
                                 isWrong={wrongCells.has(cellKey)}
+                                cellSize={cellSize}
                                 onPress={() => onSelectCell(row, col)}
                             />
                         );

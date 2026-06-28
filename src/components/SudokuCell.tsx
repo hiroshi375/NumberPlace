@@ -12,6 +12,7 @@ type Props = {
     isSameNumberBlockRelated: boolean;
     isGiven: boolean;
     isWrong: boolean;
+    cellSize: number;
     onPress: () => void;
 };
 
@@ -27,10 +28,15 @@ export default function SudokuCell({
     isSameNumberBlockRelated,
     isGiven,
     isWrong,
+    cellSize,
     onPress,
 }: Props) {
     const cellStyles = [
         styles.cell,
+        {
+            width: cellSize,
+            height: cellSize,
+        },
         col % 3 === 0 && styles.leftThick,
         row % 3 === 0 && styles.topThick,
         col === 8 && styles.rightThick,
@@ -47,9 +53,11 @@ export default function SudokuCell({
             {value !== 0 ? (
                 <Text
                     style={[
-                        styles.value,
-                        isGiven && styles.givenValue,
-                        isWrong && styles.wrongValue,
+                        styles.valueText,
+                        {
+                            fontSize: cellSize * 0.48,
+                        },
+                        isGiven && styles.givenText,
                     ]}
                 >
                     {value}
@@ -74,8 +82,6 @@ export default function SudokuCell({
 
 const styles = StyleSheet.create({
     cell: {
-        width: 38,
-        height: 38,
         borderWidth: 0.5,
         borderColor: "#9aa7b2",
         backgroundColor: "#ffffff",
@@ -138,5 +144,13 @@ const styles = StyleSheet.create({
     },
     sameNumberBlockRelated: {
         backgroundColor: "#edf6ff",
+    },
+    valueText: {
+        color: "#2f4050",
+        fontWeight: "700",
+    },
+    givenText: {
+        color: "#111827",
+        fontWeight: "800",
     },
 });
