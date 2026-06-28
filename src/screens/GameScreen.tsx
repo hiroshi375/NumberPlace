@@ -67,7 +67,7 @@ export default function GameScreen({ route, navigation }: Props) {
     const [mistakes, setMistakes] = useState(0);
     const [hintsUsed, setHintsUsed] = useState(0);
     const [isCleared, setIsCleared] = useState(false);
-    const [startedAt] = useState(() => new Date().toISOString());
+    const [startedAt, setStartedAt] = useState(() => new Date().toISOString());
 
     const [displayName, setDisplayName] = useState("プレイヤー");
     const [userId, setUserId] = useState("");
@@ -306,6 +306,33 @@ export default function GameScreen({ route, navigation }: Props) {
         });
     };
 
+    const handleClearAll = () => {
+        Alert.alert("確認", "入力した数字をすべてクリアしますか？", [
+            {
+                text: "キャンセル",
+                style: "cancel",
+            },
+            {
+                text: "全てクリア",
+                style: "destructive",
+                onPress: () => {
+                    setBoard(createInitialBoardFromPuzzle(puzzle));
+                    setMemos(createEmptyMemoBoard());
+                    setWrongCells(new Set());
+                    setSelectedRow(null);
+                    setSelectedCol(null);
+
+                    setElapsedSeconds(0);
+                    setStartedAt(new Date().toISOString());
+                    setMistakes(0);
+                    setHintsUsed(0);
+                    setIsMemoMode(false);
+                    setIsCleared(false);
+                },
+            },
+        ]);
+    };
+
     const handleHint = () => {
         if (
             board.length !== 9 ||
@@ -475,6 +502,11 @@ export default function GameScreen({ route, navigation }: Props) {
 
             <View style={styles.bottomActions}>
                 <AppButton onPress={handleHint}>ヒント</AppButton>
+
+                <AppButton mode="outlined" onPress={handleClearAll}>
+                    全てクリア
+                </AppButton>
+
                 <AppButton mode="outlined" onPress={handleStop}>
                     停止
                 </AppButton>
