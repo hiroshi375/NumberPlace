@@ -67,6 +67,7 @@ export default function GameScreen({ route, navigation }: Props) {
     const [mistakes, setMistakes] = useState(0);
     const [hintsUsed, setHintsUsed] = useState(0);
     const [isCleared, setIsCleared] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
     const [startedAt, setStartedAt] = useState(() => new Date().toISOString());
 
     const [displayName, setDisplayName] = useState("プレイヤー");
@@ -120,7 +121,7 @@ export default function GameScreen({ route, navigation }: Props) {
     }, [board, wrongCells]);
 
     useEffect(() => {
-        if (isCleared) {
+        if (isCleared || isPaused) {
             return;
         }
 
@@ -129,7 +130,7 @@ export default function GameScreen({ route, navigation }: Props) {
         }, 1000);
 
         return () => clearInterval(timerId);
-    }, [isCleared]);
+    }, [isCleared, isPaused]);
 
     const loadUser = useCallback(async () => {
         try {
@@ -203,12 +204,17 @@ export default function GameScreen({ route, navigation }: Props) {
     }, [loadUser, loadStage]);
 
     const handleSelectCell = (row: number, col: number) => {
+        if (isPaused) {
+            return;
+        }
+
         setSelectedRow(row);
         setSelectedCol(col);
     };
 
     const handlePressNumber = async (value: number) => {
         if (
+            isPaused ||
             selectedRow === null ||
             selectedCol === null ||
             puzzle.length !== 9 ||
@@ -334,6 +340,9 @@ export default function GameScreen({ route, navigation }: Props) {
     };
 
     const handleHint = () => {
+        if (isPaused) {
+            return;
+        }
         if (
             board.length !== 9 ||
             solution.length !== 9 ||
@@ -433,16 +442,15 @@ export default function GameScreen({ route, navigation }: Props) {
         }
     };
 
-    const handleStop = () => {
-        Alert.alert("確認", "ゲームを停止してホームに戻りますか？", [
+    const handlePause = () => {
+        Alert.alert("確認", "ゲームを一時停止しますか？", [
             {
                 text: "キャンセル",
                 style: "cancel",
             },
             {
-                text: "停止する",
-                style: "destructive",
-                onPress: () => navigation.navigate("Home"),
+                text: "一時停止",
+                onPress: () => setIsPaused(true),
             },
         ]);
     };
@@ -456,62 +464,105 @@ export default function GameScreen({ route, navigation }: Props) {
     }
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.content}
-        >
-            <Card style={styles.infoCard}>
-                <Card.Content>
-                    <Text style={styles.stageTitle}>{stage.title}</Text>
-                    <Text style={styles.infoText}>
-                        プレイヤー: {displayName}
-                    </Text>
-                    <Text style={styles.infoText}>
-                        難易度: {"⭐️".repeat(stage.difficulty)}
-                    </Text>
-                    <Text style={styles.infoText}>
-                        時間: {formatElapsedTime(elapsedSeconds)}
-                    </Text>
-                    <Text style={styles.infoText}>スコア: {score}</Text>
-                    <Text style={styles.infoText}>
-                        ミス: {mistakes} / ヒント: {hintsUsed}
-                    </Text>
-                </Card.Content>
-            </Card>
+        <View style={styles.screen}>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.content}
+            >
+                <Card style={styles.infoCard}>
+                    <Card.Content>
+                        <Text style={styles.stageTitle}>{stage.title}</Text>
+                        <Text style={styles.infoText}>
+                            プレイヤー: {displayName}
+                        </Text>
+                        <Text style={styles.infoText}>
+                            難易度: {"⭐️".repeat(stage.difficulty)}
+                        </Text>
+                        <Text style={styles.infoText}>
+                            時間: {formatElapsedTime(elapsedSeconds)}
+                        </Text>
+                        <Text style={styles.infoText}>スコア: {score}</Text>
+                        <Text style={styles.infoText}>
+                            ミス: {mistakes} / ヒント: {hintsUsed}
+                        </Text>
+                    </Card.Content>
+                </Card>
 
-            {isCleared ? <Text style={styles.clearText}>Clear!</Text> : null}
+                {isCleared ? (
+                    <Text style={styles.clearText}>Clear!</Text>
+                ) : null}
 
-            <SudokuBoard
-                puzzle={puzzle}
-                board={board}
-                memos={memos}
-                wrongCells={wrongCells}
-                selectedRow={selectedRow}
-                selectedCol={selectedCol}
-                onSelectCell={handleSelectCell}
-                boardSize={boardSize}
-            />
+                <SudokuBoard
+                    puzzle={puzzle}
+                    board={board}
+                    memos={memos}
+                    wrongCells={wrongCells}
+                    selectedRow={selectedRow}
+                    selectedCol={selectedCol}
+                    onSelectCell={handleSelectCell}
+                    boardSize={boardSize}
+                />
 
-            <NumberPad
-                onPressNumber={handlePressNumber}
-                onClearCell={handleClearCell}
-                isMemoMode={isMemoMode}
-                onToggleMemoMode={() => setIsMemoMode((current) => !current)}
-                disabledNumbers={disabledNumbers}
-            />
+                <NumberPad
+                    onPressNumber={handlePressNumber}
+                    onClearCell={handleClearCell}
+                    isMemoMode={isMemoMode}
+                    onToggleMemoMode={() =>
+                        setIsMemoMode((current) => !current)
+                    }
+                    disabledNumbers={disabledNumbers}
+                />
 
-            <View style={styles.bottomActions}>
-                <AppButton onPress={handleHint}>ヒント</AppButton>
+                <View style={styles.bottomActions}>
+                    <View style={styles.actionButton}>
+                        <AppButton onPress={handleHint}>ヒント</AppButton>
+                    </View>
 
-                <AppButton mode="outlined" onPress={handleClearAll}>
-                    全てクリア
-                </AppButton>
+                    <View style={styles.actionButton}>
+                        <AppButton mode="outlined" onPress={handleClearAll}>
+                            全てクリア
+                        </AppButton>
+                    </View>
 
-                <AppButton mode="outlined" onPress={handleStop}>
-                    停止
-                </AppButton>
-            </View>
-        </ScrollView>
+                    <View style={styles.actionButton}>
+                        <AppButton mode="outlined" onPress={handlePause}>
+                            一時停止
+                        </AppButton>
+                    </View>
+                </View>
+            </ScrollView>
+
+            {isPaused && (
+                <View style={styles.pauseOverlay}>
+                    <View style={styles.mosaicLayer}>
+                        {Array.from({ length: 900 }, (_, index) => (
+                            <View
+                                key={index}
+                                style={[
+                                    styles.mosaicTile,
+                                    index % 3 === 0 && styles.mosaicTileLight,
+                                    index % 3 === 1 && styles.mosaicTileMiddle,
+                                    index % 3 === 2 && styles.mosaicTileDark,
+                                ]}
+                            />
+                        ))}
+                    </View>
+
+                    <View style={styles.pauseDarkLayer} />
+
+                    <View style={styles.pausePanel}>
+                        <Text style={styles.pauseTitle}>一時停止中</Text>
+                        <Text style={styles.pauseDescription}>
+                            盤面を隠しています。
+                        </Text>
+
+                        <AppButton onPress={() => setIsPaused(false)}>
+                            再開
+                        </AppButton>
+                    </View>
+                </View>
+            )}
+        </View>
     );
 }
 
@@ -552,6 +603,62 @@ const styles = StyleSheet.create({
         marginBottom: 1,
     },
     bottomActions: {
+        flexDirection: "row",
+        gap: 8,
         marginTop: 8,
+    },
+    actionButton: {
+        flex: 1,
+    },
+    screen: {
+        flex: 1,
+        backgroundColor: "#f5f7fa",
+    },
+    pauseOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(15, 23, 42, 0.72)",
+    },
+    mosaicLayer: {
+        ...StyleSheet.absoluteFillObject,
+        flexDirection: "row",
+        flexWrap: "wrap",
+    },
+    mosaicTile: {
+        width: "3.33%",
+        height: "3.33%",
+    },
+    mosaicTileLight: {
+        backgroundColor: "rgba(255, 255, 255, 0.08)",
+    },
+    mosaicTileMiddle: {
+        backgroundColor: "rgba(100, 116, 139, 0.18)",
+    },
+    mosaicTileDark: {
+        backgroundColor: "rgba(15, 23, 42, 0.38)",
+    },
+    pauseDarkLayer: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(15, 23, 42, 0.72)",
+    },
+    pausePanel: {
+        width: "78%",
+        borderRadius: 16,
+        padding: 20,
+        backgroundColor: "#ffffff",
+        alignItems: "center",
+    },
+    pauseTitle: {
+        fontSize: 24,
+        fontWeight: "700",
+        color: "#2f4050",
+        marginBottom: 8,
+    },
+    pauseDescription: {
+        fontSize: 14,
+        color: "#6b7280",
+        marginBottom: 16,
     },
 });
