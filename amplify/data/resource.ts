@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { parseSudokuImage } from "../functions/parseSudokuImage/resource";
 
 /*== STEP 1 ===============================================================
 The section below creates a Todo database table with a "content" field. Try
@@ -120,6 +121,16 @@ const schema = a.schema({
             allow.owner(),
             allow.authenticated().to(["read"]),
         ]),
+
+    parseSudokuImage: a
+        .query()
+        .arguments({
+            imageBase64: a.string().required(),
+            mimeType: a.string().required(),
+        })
+        .returns(a.json())
+        .authorization((allow) => [allow.authenticated()])
+        .handler(a.handler.function(parseSudokuImage)),
 });
 
 export type Schema = ClientSchema<typeof schema>;

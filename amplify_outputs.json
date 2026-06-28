@@ -682,7 +682,29 @@
         }
       },
       "enums": {},
-      "nonModels": {}
+      "nonModels": {},
+      "queries": {
+        "parseSudokuImage": {
+          "name": "parseSudokuImage",
+          "isArray": false,
+          "type": "AWSJSON",
+          "isRequired": false,
+          "arguments": {
+            "imageBase64": {
+              "name": "imageBase64",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "mimeType": {
+              "name": "mimeType",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            }
+          }
+        }
+      }
     }
   },
   "storage": {

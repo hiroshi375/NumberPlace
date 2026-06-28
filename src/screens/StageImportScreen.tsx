@@ -2,9 +2,11 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { getCurrentUser } from "aws-amplify/auth";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
+import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, View } from "react-native";
-import { Text } from "react-native-paper";
+import { Alert, Image, ScrollView, StyleSheet, View } from "react-native";
+import { Switch, Text, TextInput } from "react-native-paper";
+import StageBoardEditor from "../components/StageBoardEditor";
 
 import AppButton from "../components/AppButton";
 import { client } from "../lib/client";
@@ -13,6 +15,9 @@ import type { RootStackParamList } from "../types/navigation";
 type Props = NativeStackScreenProps<RootStackParamList, "StageImport">;
 
 type Board = number[][];
+
+const createEmptyBoard = (): Board =>
+    Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => 0));
 
 type ImportStage = {
     stageId: string;
@@ -56,17 +61,23 @@ const SAMPLE_IMPORT_JSON = `[
   }
 ]`;
 
-function validateBoard(board: unknown, label: string): Board {
+function validateBoard(
+    board: unknown,
+    label: string,
+    allowZero: boolean = true,
+): Board {
     if (!Array.isArray(board) || board.length !== 9) {
         throw new Error(`${label} は9行の配列にしてください。`);
     }
 
-    board.forEach((row) => {
+    board.forEach((row, rowIndex) => {
         if (!Array.isArray(row) || row.length !== 9) {
-            throw new Error(`${label} の各行は9列にしてください。`);
+            throw new Error(
+                `${label} の${rowIndex + 1}行目は9列にしてください。`,
+            );
         }
 
-        row.forEach((value) => {
+        row.forEach((value, colIndex) => {
             if (
                 typeof value !== "number" ||
                 !Number.isInteger(value) ||
@@ -74,13 +85,19 @@ function validateBoard(board: unknown, label: string): Board {
                 value > 9
             ) {
                 throw new Error(
-                    `${label} の各マスは0〜9の整数にしてください。`,
+                    `${label} の${rowIndex + 1}行${colIndex + 1}列目は0〜9の整数にしてください。`,
+                );
+            }
+
+            if (!allowZero && value === 0) {
+                throw new Error(
+                    `${label} の${rowIndex + 1}行${colIndex + 1}列目が未入力です。`,
                 );
             }
         });
     });
 
-    return board;
+    return board as Board;
 }
 
 function countGivens(board: Board) {
@@ -111,10 +128,16 @@ function parseImportJson(text: string): ImportStage[] {
             );
         }
 
-        const puzzle = validateBoard(stage.puzzle, `${index + 1}件目 puzzle`);
+        const puzzle = validateBoard(
+            stage.puzzle,
+            `${index + 1}件目 puzzle`,
+            true,
+        );
+
         const solution = validateBoard(
             stage.solution,
             `${index + 1}件目 solution`,
+            false,
         );
 
         return {
@@ -129,10 +152,208 @@ function parseImportJson(text: string): ImportStage[] {
     });
 }
 
+function parseSudokuImageResult(data: unknown): { board?: Board } | null {
+    if (!data) {
+        return null;
+    }
+
+    if (typeof data === "string") {
+        return JSON.parse(data) as { board?: Board };
+    }
+
+    return data as { board?: Board };
+}
+
 export default function StageImportScreen({ navigation }: Props) {
     const [selectedFileName, setSelectedFileName] = useState("");
     const [stages, setStages] = useState<ImportStage[]>([]);
     const [isImporting, setIsImporting] = useState(false);
+
+    const [stageId, setStageId] = useState("");
+    const [title, setTitle] = useState("");
+    const [difficulty, setDifficulty] = useState("1");
+    const [difficultyLabel, setDifficultyLabel] = useState("初級");
+    const [isPublished, setIsPublished] = useState(true);
+
+    const [puzzleBoard, setPuzzleBoard] = useState<Board>(createEmptyBoard());
+    const [solutionBoard, setSolutionBoard] =
+        useState<Board>(createEmptyBoard());
+
+    const [puzzleImageUri, setPuzzleImageUri] = useState<string | null>(null);
+    const [solutionImageUri, setSolutionImageUri] = useState<string | null>(
+        null,
+    );
+
+    const [isParsingPuzzle, setIsParsingPuzzle] = useState(false);
+    const [isParsingSolution, setIsParsingSolution] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    const captureAndParseBoard = async (target: "puzzle" | "solution") => {
+        try {
+            const permissionResult =
+                await ImagePicker.requestCameraPermissionsAsync();
+
+            if (!permissionResult.granted) {
+                Alert.alert(
+                    "権限が必要です",
+                    "カメラから取り込むため、カメラ権限を許可してください。",
+                );
+                return;
+            }
+
+            if (target === "puzzle") {
+                setIsParsingPuzzle(true);
+            } else {
+                setIsParsingSolution(true);
+            }
+
+            const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                quality: 0.7,
+                base64: true,
+            });
+
+            if (result.canceled) {
+                return;
+            }
+
+            const asset = result.assets[0];
+
+            if (!asset?.base64 || !asset.uri) {
+                Alert.alert("エラー", "画像を読み込めませんでした。");
+                return;
+            }
+
+            const mimeType = asset.mimeType ?? "image/jpeg";
+
+            const parseResult = await client.queries.parseSudokuImage({
+                imageBase64: asset.base64,
+                mimeType,
+            });
+
+            console.log(
+                "parseSudokuImage result:",
+                JSON.stringify(parseResult, null, 2),
+            );
+
+            if (parseResult.errors && parseResult.errors.length > 0) {
+                console.error("parseSudokuImage errors:", parseResult.errors);
+                Alert.alert("エラー", "画像解析でエラーが発生しました。");
+                return;
+            }
+
+            const data = parseSudokuImageResult(parseResult.data);
+
+            if (!data?.board) {
+                Alert.alert("エラー", "盤面を読み取れませんでした。");
+                return;
+            }
+
+            if (target === "puzzle") {
+                setPuzzleImageUri(asset.uri);
+                setPuzzleBoard(data.board);
+                Alert.alert("読み取り完了", "問題画像を盤面に変換しました。");
+            } else {
+                setSolutionImageUri(asset.uri);
+                setSolutionBoard(data.board);
+                Alert.alert("読み取り完了", "解答画像を盤面に変換しました。");
+            }
+        } catch (error) {
+            console.error("Capture and parse board error:", error);
+            Alert.alert("エラー", "画像から盤面の読み取りに失敗しました。");
+        } finally {
+            setIsParsingPuzzle(false);
+            setIsParsingSolution(false);
+        }
+    };
+
+    const handleSaveCameraImport = async () => {
+        if (!stageId.trim()) {
+            Alert.alert("入力確認", "ステージIDを入力してください。");
+            return;
+        }
+
+        if (!title.trim()) {
+            Alert.alert("入力確認", "タイトルを入力してください。");
+            return;
+        }
+
+        const difficultyNumber = Number(difficulty);
+
+        if (
+            !Number.isInteger(difficultyNumber) ||
+            difficultyNumber < 1 ||
+            difficultyNumber > 5
+        ) {
+            Alert.alert("入力確認", "難易度は1〜5の整数で入力してください。");
+            return;
+        }
+
+        try {
+            validateBoard(puzzleBoard, "問題", true);
+            validateBoard(solutionBoard, "解答", false);
+        } catch (error) {
+            Alert.alert(
+                "入力確認",
+                error instanceof Error
+                    ? error.message
+                    : "盤面の入力内容が正しくありません。",
+            );
+            return;
+        }
+
+        try {
+            setIsSaving(true);
+
+            const user = await getCurrentUser();
+            const now = new Date().toISOString();
+
+            const existing = await client.models.Stage.list({
+                filter: {
+                    stageId: {
+                        eq: stageId.trim(),
+                    },
+                },
+            });
+
+            const existingStage = existing.data?.[0];
+
+            const payload = {
+                stageId: stageId.trim(),
+                title: title.trim(),
+                difficulty: difficultyNumber,
+                difficultyLabel: difficultyLabel.trim(),
+                puzzleJson: JSON.stringify(puzzleBoard),
+                solutionJson: JSON.stringify(solutionBoard),
+                givensCount: countGivens(puzzleBoard),
+                isPublished,
+                updatedAt: now,
+            };
+
+            if (existingStage) {
+                await client.models.Stage.update({
+                    id: existingStage.id,
+                    ...payload,
+                });
+
+                Alert.alert("保存完了", "既存ステージを更新しました。");
+            } else {
+                await client.models.Stage.create({
+                    ...payload,
+                    createdBy: user.userId,
+                    createdAt: now,
+                });
+
+                Alert.alert("保存完了", "新しいステージを作成しました。");
+            }
+        } catch (error) {
+            console.error("Save camera import stage error:", error);
+            Alert.alert("エラー", "ステージの保存に失敗しました。");
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const handlePickFile = async () => {
         try {
@@ -254,6 +475,102 @@ export default function StageImportScreen({ navigation }: Props) {
             style={styles.container}
             contentContainerStyle={styles.content}
         >
+            <Text style={styles.sectionTitle}>カメラから取込</Text>
+
+            <Text style={styles.description}>
+                問題画像と解答画像をそれぞれ撮影し、9×9の盤面へ変換します。
+                保存前にプレビューを確認・修正できます。
+            </Text>
+
+            <AppButton
+                mode="outlined"
+                onPress={() => captureAndParseBoard("puzzle")}
+                disabled={isParsingPuzzle || isParsingSolution}
+            >
+                問題画像をカメラから取込
+            </AppButton>
+
+            {puzzleImageUri && (
+                <Image
+                    source={{ uri: puzzleImageUri }}
+                    style={styles.previewImage}
+                />
+            )}
+
+            <AppButton
+                mode="outlined"
+                onPress={() => captureAndParseBoard("solution")}
+                disabled={isParsingPuzzle || isParsingSolution}
+            >
+                解答画像をカメラから取込
+            </AppButton>
+
+            {solutionImageUri && (
+                <Image
+                    source={{ uri: solutionImageUri }}
+                    style={styles.previewImage}
+                />
+            )}
+
+            <TextInput
+                mode="outlined"
+                label="ステージID"
+                value={stageId}
+                onChangeText={setStageId}
+                style={styles.input}
+                placeholder="stage-001"
+            />
+
+            <TextInput
+                mode="outlined"
+                label="タイトル"
+                value={title}
+                onChangeText={setTitle}
+                style={styles.input}
+                placeholder="初級 1"
+            />
+
+            <TextInput
+                mode="outlined"
+                label="難易度 1〜5"
+                value={difficulty}
+                onChangeText={setDifficulty}
+                style={styles.input}
+                keyboardType="number-pad"
+            />
+
+            <TextInput
+                mode="outlined"
+                label="難易度ラベル"
+                value={difficultyLabel}
+                onChangeText={setDifficultyLabel}
+                style={styles.input}
+                placeholder="初級"
+            />
+
+            <View style={styles.switchRow}>
+                <Text style={styles.switchLabel}>公開する</Text>
+                <Switch value={isPublished} onValueChange={setIsPublished} />
+            </View>
+
+            <Text style={styles.boardLabel}>問題プレビュー</Text>
+            <StageBoardEditor
+                board={puzzleBoard}
+                onChangeBoard={setPuzzleBoard}
+                allowZero
+            />
+
+            <Text style={styles.boardLabel}>解答プレビュー</Text>
+            <StageBoardEditor
+                board={solutionBoard}
+                onChangeBoard={setSolutionBoard}
+                allowZero={false}
+            />
+
+            <AppButton onPress={handleSaveCameraImport} disabled={isSaving}>
+                保存
+            </AppButton>
+
             <Text style={styles.title}>ステージインポート</Text>
 
             <Text style={styles.description}>
@@ -424,5 +741,41 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         color: "#374151",
         fontFamily: "monospace",
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: "700",
+        color: "#2f4050",
+        marginTop: 20,
+        marginBottom: 8,
+    },
+    input: {
+        marginBottom: 12,
+        backgroundColor: "#ffffff",
+    },
+    previewImage: {
+        width: "100%",
+        height: 180,
+        borderRadius: 12,
+        marginTop: 8,
+        marginBottom: 12,
+        backgroundColor: "#e5e7eb",
+    },
+    switchRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: 12,
+    },
+    switchLabel: {
+        fontSize: 16,
+        color: "#2f4050",
+    },
+    boardLabel: {
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#2f4050",
+        marginTop: 12,
+        marginBottom: 8,
     },
 });

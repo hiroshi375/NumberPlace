@@ -7,5 +7,10 @@
         }
     },
     "include": ["**/*.ts", "**/*.tsx"],
-    "exclude": ["node_modules", "app-router-backup", "components"]
+    "exclude": [
+        "node_modules",
+        "app-router-backup",
+        "components",
+        "amplify/functions"
+    ]
 }
