@@ -6,6 +6,7 @@ type Props = {
     onClearCell: () => void;
     isMemoMode: boolean;
     onToggleMemoMode: () => void;
+    disabledNumbers?: Set<number>;
 };
 
 export default function NumberPad({
@@ -13,21 +14,27 @@ export default function NumberPad({
     onClearCell,
     isMemoMode,
     onToggleMemoMode,
+    disabledNumbers = new Set<number>(),
 }: Props) {
     return (
         <View style={styles.container}>
             <View style={styles.numberGrid}>
                 {Array.from({ length: 9 }, (_, index) => {
                     const value = index + 1;
+                    const isDisabled = disabledNumbers.has(value);
 
                     return (
                         <Button
                             key={value}
                             mode="contained"
-                            style={styles.numberButton}
+                            style={[
+                                styles.numberButton,
+                                isDisabled && styles.disabledNumberButton,
+                            ]}
                             contentStyle={styles.numberButtonContent}
-                            buttonColor="#4b6f8f"
-                            textColor="#ffffff"
+                            buttonColor={isDisabled ? "#d1d5db" : "#4b6f8f"}
+                            textColor={isDisabled ? "#6b7280" : "#ffffff"}
+                            disabled={isDisabled}
                             onPress={() => onPressNumber(value)}
                         >
                             {value}
@@ -73,6 +80,9 @@ const styles = StyleSheet.create({
     numberButton: {
         borderRadius: 8,
         width: 58,
+    },
+    disabledNumberButton: {
+        opacity: 0.7,
     },
     numberButtonContent: {
         height: 42,

@@ -87,6 +87,27 @@ export default function GameScreen({ route, navigation }: Props) {
         isCleared,
     ]);
 
+    const disabledNumbers = useMemo(() => {
+        const counts = Array.from({ length: 10 }, () => 0);
+
+        board.forEach((rowValues, rowIndex) => {
+            rowValues.forEach((value, colIndex) => {
+                const cellKey = `${rowIndex}-${colIndex}`;
+
+                if (value >= 1 && value <= 9 && !wrongCells.has(cellKey)) {
+                    counts[value] += 1;
+                }
+            });
+        });
+
+        return new Set(
+            counts
+                .map((count, value) => ({ value, count }))
+                .filter(({ value, count }) => value >= 1 && count >= 9)
+                .map(({ value }) => value),
+        );
+    }, [board, wrongCells]);
+
     useEffect(() => {
         if (isCleared) {
             return;
@@ -437,6 +458,7 @@ export default function GameScreen({ route, navigation }: Props) {
                 onClearCell={handleClearCell}
                 isMemoMode={isMemoMode}
                 onToggleMemoMode={() => setIsMemoMode((current) => !current)}
+                disabledNumbers={disabledNumbers}
             />
 
             <View style={styles.bottomActions}>

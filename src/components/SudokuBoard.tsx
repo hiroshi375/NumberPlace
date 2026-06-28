@@ -31,6 +31,19 @@ export default function SudokuBoard({
             ? board[selectedRow][selectedCol]
             : 0;
 
+    const sameNumberPositions =
+        selectedValue !== 0
+            ? board.flatMap((rowValues, sameNumberRow) =>
+                  rowValues
+                      .map((value, sameNumberCol) => ({
+                          value,
+                          row: sameNumberRow,
+                          col: sameNumberCol,
+                      }))
+                      .filter((cell) => cell.value === selectedValue),
+              )
+            : [];
+
     return (
         <View style={styles.board}>
             {board.map((rowValues, row) => (
@@ -47,6 +60,33 @@ export default function SudokuBoard({
                         const isSameNumber =
                             selectedValue !== 0 && value === selectedValue;
 
+                        const isSameNumberRelated =
+                            selectedValue !== 0 &&
+                            sameNumberPositions.some(
+                                (position) =>
+                                    position.row === row ||
+                                    position.col === col,
+                            );
+
+                        const isSameNumberBlockRelated =
+                            selectedValue !== 0 &&
+                            sameNumberPositions.some((position) => {
+                                const sameNumberBlockRow = Math.floor(
+                                    position.row / 3,
+                                );
+                                const sameNumberBlockCol = Math.floor(
+                                    position.col / 3,
+                                );
+
+                                const currentBlockRow = Math.floor(row / 3);
+                                const currentBlockCol = Math.floor(col / 3);
+
+                                return (
+                                    sameNumberBlockRow === currentBlockRow &&
+                                    sameNumberBlockCol === currentBlockCol
+                                );
+                            });
+
                         const cellKey = `${row}-${col}`;
 
                         return (
@@ -59,6 +99,10 @@ export default function SudokuBoard({
                                 isSelected={isSelected}
                                 isRelated={isRelated}
                                 isSameNumber={isSameNumber}
+                                isSameNumberRelated={isSameNumberRelated}
+                                isSameNumberBlockRelated={
+                                    isSameNumberBlockRelated
+                                }
                                 isGiven={isGivenCell(puzzle, row, col)}
                                 isWrong={wrongCells.has(cellKey)}
                                 onPress={() => onSelectCell(row, col)}
