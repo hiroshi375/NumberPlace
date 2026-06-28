@@ -19,6 +19,7 @@ const schema = a.schema({
             totalClearedStages: a.integer().default(0),
             createdAt: a.datetime(),
             updatedAt: a.datetime(),
+            iconPath: a.string(),
         })
         .authorization((allow) => [
             // MVPではログイン済みユーザー全員が読めるようにする

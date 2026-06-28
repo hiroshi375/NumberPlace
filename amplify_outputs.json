@@ -114,6 +114,13 @@
               "type": "AWSDateTime",
               "isRequired": false,
               "attributes": []
+            },
+            "iconPath": {
+              "name": "iconPath",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
             }
           },
           "syncable": true,
