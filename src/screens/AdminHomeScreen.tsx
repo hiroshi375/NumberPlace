@@ -1,9 +1,13 @@
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { getCurrentUser } from "aws-amplify/auth";
 import { Alert, StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 
 import AppButton from "../components/AppButton";
 import { client } from "../lib/client";
+import type { RootStackParamList } from "../types/navigation";
+
+type Props = NativeStackScreenProps<RootStackParamList, "AdminHome">;
 
 const SAMPLE_PUZZLE = [
     [5, 3, 0, 0, 7, 0, 0, 0, 0],
@@ -29,7 +33,7 @@ const SAMPLE_SOLUTION = [
     [3, 4, 5, 2, 8, 6, 1, 7, 9],
 ];
 
-export default function AdminHomeScreen() {
+export default function AdminHomeScreen({ navigation }: Props) {
     const createSampleStage = async () => {
         try {
             const user = await getCurrentUser();
@@ -81,6 +85,14 @@ export default function AdminHomeScreen() {
 
             <AppButton onPress={createSampleStage}>
                 テストステージを作成
+            </AppButton>
+
+            <AppButton onPress={() => navigation.navigate("StageAdmin")}>
+                ステージ管理
+            </AppButton>
+
+            <AppButton onPress={() => navigation.navigate("StageImport")}>
+                ステージインポート
             </AppButton>
         </View>
     );

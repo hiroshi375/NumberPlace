@@ -1,15 +1,47 @@
 import { useAuthenticator } from "@aws-amplify/ui-react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { getCurrentUser } from "aws-amplify/auth";
+import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Text } from "react-native-paper";
 
 import AppButton from "../components/AppButton";
+import { client } from "../lib/client";
 import type { RootStackParamList } from "../types/navigation";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 export default function HomeScreen({ navigation }: Props) {
     const { signOut } = useAuthenticator();
+
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    const loadAdminRole = useCallback(async () => {
+        try {
+            const user = await getCurrentUser();
+
+            const result = await client.models.UserProfile.list({
+                filter: {
+                    userId: {
+                        eq: user.userId,
+                    },
+                },
+            });
+
+            const profile = result.data?.[0];
+
+            setIsAdmin(profile?.role === "admin");
+        } catch (error) {
+            console.error("Load admin role error:", error);
+            setIsAdmin(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        const unsubscribe = navigation.addListener("focus", loadAdminRole);
+
+        return unsubscribe;
+    }, [navigation, loadAdminRole]);
 
     return (
         <View style={styles.container}>
@@ -29,9 +61,11 @@ export default function HomeScreen({ navigation }: Props) {
                     ランキング
                 </AppButton>
 
-                <AppButton onPress={() => navigation.navigate("AdminHome")}>
-                    管理者メニュー
-                </AppButton>
+                {isAdmin && (
+                    <AppButton onPress={() => navigation.navigate("AdminHome")}>
+                        管理者メニュー
+                    </AppButton>
+                )}
 
                 <AppButton mode="outlined" onPress={signOut}>
                     サインアウト

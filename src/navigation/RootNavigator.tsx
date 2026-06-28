@@ -6,6 +6,9 @@ import GameScreen from "../screens/GameScreen";
 import HomeScreen from "../screens/HomeScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import RankingScreen from "../screens/RankingScreen";
+import StageAdminScreen from "../screens/StageAdminScreen";
+import StageEditScreen from "../screens/StageEditScreen";
+import StageImportScreen from "../screens/StageImportScreen";
 import StageSelectScreen from "../screens/StageSelectScreen";
 
 import type { RootStackParamList } from "../types/navigation";
@@ -45,6 +48,21 @@ export default function RootNavigator() {
                     name="AdminHome"
                     component={AdminHomeScreen}
                     options={{ title: "管理者メニュー" }}
+                />
+                <Stack.Screen
+                    name="StageAdmin"
+                    component={StageAdminScreen}
+                    options={{ title: "ステージ管理" }}
+                />
+                <Stack.Screen
+                    name="StageEdit"
+                    component={StageEditScreen}
+                    options={{ title: "ステージ編集" }}
+                />
+                <Stack.Screen
+                    name="StageImport"
+                    component={StageImportScreen}
+                    options={{ title: "ステージインポート" }}
                 />
             </Stack.Navigator>
         </NavigationContainer>

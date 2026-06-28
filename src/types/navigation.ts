@@ -9,4 +9,9 @@ export type RootStackParamList = {
         stageId?: string;
     };
     AdminHome: undefined;
+    StageAdmin: undefined;
+    StageEdit: {
+        stageId?: string;
+    };
+    StageImport: undefined;
 };
