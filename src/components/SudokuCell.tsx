@@ -19,8 +19,6 @@ type Props = {
 export default function SudokuCell({
     value,
     memoValues,
-    row,
-    col,
     isSelected,
     isRelated,
     isSameNumber,
@@ -37,15 +35,13 @@ export default function SudokuCell({
             width: cellSize,
             height: cellSize,
         },
-        col % 3 === 0 && styles.leftThick,
-        row % 3 === 0 && styles.topThick,
-        col === 8 && styles.rightThick,
-        row === 8 && styles.bottomThick,
+
         isRelated && styles.related,
         isSameNumberBlockRelated && styles.sameNumberBlockRelated,
         isSameNumberRelated && styles.sameNumberRelated,
         isSameNumber && styles.sameNumber,
         isSelected && styles.selected,
+        isWrong && styles.wrong,
     ];
 
     return (
@@ -58,6 +54,7 @@ export default function SudokuCell({
                             fontSize: cellSize * 0.48,
                         },
                         isGiven && styles.givenText,
+                        isWrong && styles.wrongValueText,
                     ]}
                 >
                     {value}
@@ -69,7 +66,15 @@ export default function SudokuCell({
                         const visible = memoValues.includes(memoNumber);
 
                         return (
-                            <Text key={memoNumber} style={styles.memoText}>
+                            <Text
+                                key={memoNumber}
+                                style={[
+                                    styles.memoText,
+                                    {
+                                        fontSize: cellSize * 0.18,
+                                    },
+                                ]}
+                            >
                                 {visible ? memoNumber : ""}
                             </Text>
                         );
@@ -82,30 +87,15 @@ export default function SudokuCell({
 
 const styles = StyleSheet.create({
     cell: {
-        borderWidth: 0.5,
-        borderColor: "#9aa7b2",
         backgroundColor: "#ffffff",
         alignItems: "center",
         justifyContent: "center",
     },
-    leftThick: {
-        borderLeftWidth: 2,
-        borderLeftColor: "#2f4050",
-    },
-    topThick: {
-        borderTopWidth: 2,
-        borderTopColor: "#2f4050",
-    },
-    rightThick: {
-        borderRightWidth: 2,
-        borderRightColor: "#2f4050",
-    },
-    bottomThick: {
-        borderBottomWidth: 2,
-        borderBottomColor: "#2f4050",
-    },
     related: {
         backgroundColor: "#e8f1f8",
+    },
+    sameNumberBlockRelated: {
+        backgroundColor: "#edf6ff",
     },
     sameNumberRelated: {
         backgroundColor: "#e2eef8",
@@ -116,17 +106,20 @@ const styles = StyleSheet.create({
     selected: {
         backgroundColor: "#cfe3f5",
     },
-    value: {
-        fontSize: 22,
+    wrong: {
+        backgroundColor: "#fee2e2",
+    },
+    valueText: {
         color: "#2f4050",
-    },
-    givenValue: {
         fontWeight: "700",
+    },
+    givenText: {
         color: "#111827",
+        fontWeight: "800",
     },
-    wrongValue: {
+    wrongValueText: {
         color: "#d93025",
-        fontWeight: "700",
+        fontWeight: "800",
     },
     memoGrid: {
         width: "100%",
@@ -138,19 +131,7 @@ const styles = StyleSheet.create({
     memoText: {
         width: "33.33%",
         height: "33.33%",
-        fontSize: 9,
         textAlign: "center",
         color: "#64748b",
-    },
-    sameNumberBlockRelated: {
-        backgroundColor: "#edf6ff",
-    },
-    valueText: {
-        color: "#2f4050",
-        fontWeight: "700",
-    },
-    givenText: {
-        color: "#111827",
-        fontWeight: "800",
     },
 });
