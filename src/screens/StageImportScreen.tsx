@@ -4,7 +4,14 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { Alert, Image, ScrollView, StyleSheet, View } from "react-native";
+import {
+    ActivityIndicator,
+    Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
 import { Switch, Text, TextInput } from "react-native-paper";
 import StageBoardEditor from "../components/StageBoardEditor";
 
@@ -188,6 +195,8 @@ export default function StageImportScreen({ navigation }: Props) {
     const [isParsingSolution, setIsParsingSolution] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    const isParsing = isParsingPuzzle || isParsingSolution;
+
     const captureAndParseBoard = async (target: "puzzle" | "solution") => {
         try {
             const permissionResult =
@@ -199,12 +208,6 @@ export default function StageImportScreen({ navigation }: Props) {
                     "カメラから取り込むため、カメラ権限を許可してください。",
                 );
                 return;
-            }
-
-            if (target === "puzzle") {
-                setIsParsingPuzzle(true);
-            } else {
-                setIsParsingSolution(true);
             }
 
             const result = await ImagePicker.launchCameraAsync({
@@ -223,6 +226,12 @@ export default function StageImportScreen({ navigation }: Props) {
             if (!asset?.base64 || !asset.uri) {
                 Alert.alert("エラー", "画像を読み込めませんでした。");
                 return;
+            }
+
+            if (target === "puzzle") {
+                setIsParsingPuzzle(true);
+            } else {
+                setIsParsingSolution(true);
             }
 
             const mimeType = asset.mimeType ?? "image/jpeg";
@@ -471,175 +480,204 @@ export default function StageImportScreen({ navigation }: Props) {
     };
 
     return (
-        <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.content}
-        >
-            <Text style={styles.sectionTitle}>カメラから取込</Text>
-
-            <Text style={styles.description}>
-                問題画像と解答画像をそれぞれ撮影し、9×9の盤面へ変換します。
-                保存前にプレビューを確認・修正できます。
-            </Text>
-
-            <AppButton
-                mode="outlined"
-                onPress={() => captureAndParseBoard("puzzle")}
-                disabled={isParsingPuzzle || isParsingSolution}
+        <View style={styles.screen}>
+            <ScrollView
+                style={styles.container}
+                contentContainerStyle={styles.content}
             >
-                問題画像をカメラから取込
-            </AppButton>
+                <Text style={styles.sectionTitle}>カメラから取込</Text>
 
-            {puzzleImageUri && (
-                <Image
-                    source={{ uri: puzzleImageUri }}
-                    style={styles.previewImage}
-                />
-            )}
-
-            <AppButton
-                mode="outlined"
-                onPress={() => captureAndParseBoard("solution")}
-                disabled={isParsingPuzzle || isParsingSolution}
-            >
-                解答画像をカメラから取込
-            </AppButton>
-
-            {solutionImageUri && (
-                <Image
-                    source={{ uri: solutionImageUri }}
-                    style={styles.previewImage}
-                />
-            )}
-
-            <TextInput
-                mode="outlined"
-                label="ステージID"
-                value={stageId}
-                onChangeText={setStageId}
-                style={styles.input}
-                placeholder="stage-001"
-            />
-
-            <TextInput
-                mode="outlined"
-                label="タイトル"
-                value={title}
-                onChangeText={setTitle}
-                style={styles.input}
-                placeholder="初級 1"
-            />
-
-            <TextInput
-                mode="outlined"
-                label="難易度 1〜5"
-                value={difficulty}
-                onChangeText={setDifficulty}
-                style={styles.input}
-                keyboardType="number-pad"
-            />
-
-            <TextInput
-                mode="outlined"
-                label="難易度ラベル"
-                value={difficultyLabel}
-                onChangeText={setDifficultyLabel}
-                style={styles.input}
-                placeholder="初級"
-            />
-
-            <View style={styles.switchRow}>
-                <Text style={styles.switchLabel}>公開する</Text>
-                <Switch value={isPublished} onValueChange={setIsPublished} />
-            </View>
-
-            <Text style={styles.boardLabel}>問題プレビュー</Text>
-            <StageBoardEditor
-                board={puzzleBoard}
-                onChangeBoard={setPuzzleBoard}
-                allowZero
-            />
-
-            <Text style={styles.boardLabel}>解答プレビュー</Text>
-            <StageBoardEditor
-                board={solutionBoard}
-                onChangeBoard={setSolutionBoard}
-                allowZero={false}
-            />
-
-            <AppButton onPress={handleSaveCameraImport} disabled={isSaving}>
-                保存
-            </AppButton>
-
-            <Text style={styles.title}>ステージインポート</Text>
-
-            <Text style={styles.description}>
-                JSONファイルを選択してステージを一括登録・更新します。
-                同じstageIdが存在する場合は更新します。
-            </Text>
-
-            <AppButton mode="outlined" onPress={handlePickFile}>
-                JSONファイルを選択
-            </AppButton>
-
-            <View style={styles.fileInfoBox}>
-                <Text style={styles.fileInfoLabel}>選択中のファイル</Text>
-                <Text style={styles.fileInfoValue}>
-                    {selectedFileName || "未選択"}
+                <Text style={styles.description}>
+                    問題画像と解答画像をそれぞれ撮影し、9×9の盤面へ変換します。
+                    保存前にプレビューを確認・修正できます。
                 </Text>
-            </View>
 
-            <View style={styles.fileInfoBox}>
-                <Text style={styles.fileInfoLabel}>読み込み件数</Text>
-                <Text style={styles.fileInfoValue}>{stages.length}件</Text>
-            </View>
+                <AppButton
+                    mode="outlined"
+                    onPress={() => captureAndParseBoard("puzzle")}
+                    disabled={isParsing || isSaving}
+                >
+                    問題画像をカメラから取込
+                </AppButton>
 
-            {stages.length > 0 && (
-                <View style={styles.previewBox}>
-                    <Text style={styles.previewTitle}>読み込み内容</Text>
+                {puzzleImageUri && (
+                    <Image
+                        source={{ uri: puzzleImageUri }}
+                        style={styles.previewImage}
+                    />
+                )}
 
-                    {stages.slice(0, 5).map((stage) => (
-                        <View key={stage.stageId} style={styles.previewItem}>
-                            <Text style={styles.previewStageTitle}>
-                                {stage.title}
-                            </Text>
-                            <Text style={styles.previewStageText}>
-                                ID: {stage.stageId}
-                            </Text>
-                            <Text style={styles.previewStageText}>
-                                難易度: {stage.difficultyLabel || "-"} /{" "}
-                                {stage.difficulty}
-                            </Text>
-                            <Text style={styles.previewStageText}>
-                                初期数字数: {countGivens(stage.puzzle)}
-                            </Text>
-                        </View>
-                    ))}
+                <AppButton
+                    mode="outlined"
+                    onPress={() => captureAndParseBoard("solution")}
+                    disabled={isParsing || isSaving}
+                >
+                    解答画像をカメラから取込
+                </AppButton>
 
-                    {stages.length > 5 && (
-                        <Text style={styles.moreText}>
-                            ほか {stages.length - 5} 件
+                {solutionImageUri && (
+                    <Image
+                        source={{ uri: solutionImageUri }}
+                        style={styles.previewImage}
+                    />
+                )}
+
+                <TextInput
+                    mode="outlined"
+                    label="ステージID"
+                    value={stageId}
+                    onChangeText={setStageId}
+                    style={styles.input}
+                    placeholder="stage-001"
+                />
+
+                <TextInput
+                    mode="outlined"
+                    label="タイトル"
+                    value={title}
+                    onChangeText={setTitle}
+                    style={styles.input}
+                    placeholder="初級 1"
+                />
+
+                <TextInput
+                    mode="outlined"
+                    label="難易度 1〜5"
+                    value={difficulty}
+                    onChangeText={setDifficulty}
+                    style={styles.input}
+                    keyboardType="number-pad"
+                />
+
+                <TextInput
+                    mode="outlined"
+                    label="難易度ラベル"
+                    value={difficultyLabel}
+                    onChangeText={setDifficultyLabel}
+                    style={styles.input}
+                    placeholder="初級"
+                />
+
+                <View style={styles.switchRow}>
+                    <Text style={styles.switchLabel}>公開する</Text>
+                    <Switch
+                        value={isPublished}
+                        onValueChange={setIsPublished}
+                    />
+                </View>
+
+                <Text style={styles.boardLabel}>問題プレビュー</Text>
+                <StageBoardEditor
+                    board={puzzleBoard}
+                    onChangeBoard={setPuzzleBoard}
+                    allowZero
+                />
+
+                <Text style={styles.boardLabel}>解答プレビュー</Text>
+                <StageBoardEditor
+                    board={solutionBoard}
+                    onChangeBoard={setSolutionBoard}
+                    allowZero={false}
+                />
+
+                <AppButton
+                    onPress={handleSaveCameraImport}
+                    disabled={isParsing || isSaving}
+                >
+                    保存
+                </AppButton>
+
+                <Text style={styles.title}>ステージインポート</Text>
+
+                <Text style={styles.description}>
+                    JSONファイルを選択してステージを一括登録・更新します。
+                    同じstageIdが存在する場合は更新します。
+                </Text>
+
+                <AppButton mode="outlined" onPress={handlePickFile}>
+                    JSONファイルを選択
+                </AppButton>
+
+                <View style={styles.fileInfoBox}>
+                    <Text style={styles.fileInfoLabel}>選択中のファイル</Text>
+                    <Text style={styles.fileInfoValue}>
+                        {selectedFileName || "未選択"}
+                    </Text>
+                </View>
+
+                <View style={styles.fileInfoBox}>
+                    <Text style={styles.fileInfoLabel}>読み込み件数</Text>
+                    <Text style={styles.fileInfoValue}>{stages.length}件</Text>
+                </View>
+
+                {stages.length > 0 && (
+                    <View style={styles.previewBox}>
+                        <Text style={styles.previewTitle}>読み込み内容</Text>
+
+                        {stages.slice(0, 5).map((stage) => (
+                            <View
+                                key={stage.stageId}
+                                style={styles.previewItem}
+                            >
+                                <Text style={styles.previewStageTitle}>
+                                    {stage.title}
+                                </Text>
+                                <Text style={styles.previewStageText}>
+                                    ID: {stage.stageId}
+                                </Text>
+                                <Text style={styles.previewStageText}>
+                                    難易度: {stage.difficultyLabel || "-"} /{" "}
+                                    {stage.difficulty}
+                                </Text>
+                                <Text style={styles.previewStageText}>
+                                    初期数字数: {countGivens(stage.puzzle)}
+                                </Text>
+                            </View>
+                        ))}
+
+                        {stages.length > 5 && (
+                            <Text style={styles.moreText}>
+                                ほか {stages.length - 5} 件
+                            </Text>
+                        )}
+                    </View>
+                )}
+
+                <AppButton onPress={handleImport} disabled={isImporting}>
+                    インポート実行
+                </AppButton>
+
+                <View style={styles.sampleBox}>
+                    <Text style={styles.sampleTitle}>
+                        インポートJSONサンプル
+                    </Text>
+                    <Text style={styles.sampleDescription}>
+                        以下の形式のJSONファイルを選択してください。
+                        0は空白マスを表します。
+                    </Text>
+
+                    <ScrollView horizontal style={styles.sampleCodeScroll}>
+                        <Text style={styles.sampleCode}>
+                            {SAMPLE_IMPORT_JSON}
                         </Text>
-                    )}
+                    </ScrollView>
+                </View>
+            </ScrollView>
+            {isParsing && (
+                <View style={styles.processingOverlay}>
+                    <View style={styles.processingPanel}>
+                        <ActivityIndicator size="large" />
+                        <Text style={styles.processingTitle}>
+                            画像を解析しています
+                        </Text>
+                        <Text style={styles.processingDescription}>
+                            Bedrockで数独の盤面を読み取っています。
+                            完了まで少しお待ちください。
+                        </Text>
+                    </View>
                 </View>
             )}
-
-            <AppButton onPress={handleImport} disabled={isImporting}>
-                インポート実行
-            </AppButton>
-
-            <View style={styles.sampleBox}>
-                <Text style={styles.sampleTitle}>インポートJSONサンプル</Text>
-                <Text style={styles.sampleDescription}>
-                    以下の形式のJSONファイルを選択してください。
-                    0は空白マスを表します。
-                </Text>
-
-                <ScrollView horizontal style={styles.sampleCodeScroll}>
-                    <Text style={styles.sampleCode}>{SAMPLE_IMPORT_JSON}</Text>
-                </ScrollView>
-            </View>
-        </ScrollView>
+        </View>
     );
 }
 
@@ -777,5 +815,36 @@ const styles = StyleSheet.create({
         color: "#2f4050",
         marginTop: 12,
         marginBottom: 8,
+    },
+    screen: {
+        flex: 1,
+        backgroundColor: "#f5f7fa",
+    },
+    processingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(15, 23, 42, 0.55)",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 20,
+    },
+    processingPanel: {
+        width: "82%",
+        borderRadius: 16,
+        padding: 24,
+        backgroundColor: "#ffffff",
+        alignItems: "center",
+    },
+    processingTitle: {
+        marginTop: 16,
+        fontSize: 18,
+        fontWeight: "700",
+        color: "#2f4050",
+    },
+    processingDescription: {
+        marginTop: 8,
+        fontSize: 14,
+        lineHeight: 20,
+        color: "#6b7280",
+        textAlign: "center",
     },
 });
