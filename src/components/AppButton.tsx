@@ -15,16 +15,26 @@ export default function AppButton({
     mode = "contained",
     disabled = false,
 }: Props) {
+    const isContained = mode === "contained";
+    const isOutlined = mode === "outlined";
+
     return (
         <Button
             mode={mode}
             disabled={disabled}
             onPress={onPress}
-            style={styles.button}
+            style={[
+                styles.button,
+                isContained && styles.containedButton,
+                isOutlined && styles.outlinedButton,
+                disabled && styles.disabledButton,
+            ]}
             contentStyle={styles.content}
             labelStyle={styles.label}
-            buttonColor={mode === "contained" ? "#4b6f8f" : undefined}
-            textColor={mode === "contained" ? "#ffffff" : "#4b6f8f"}
+            buttonColor={
+                isContained ? (disabled ? "#9ca3af" : "#4b6f8f") : undefined
+            }
+            textColor={isContained ? "#ffffff" : "#4b6f8f"}
         >
             {children}
         </Button>
@@ -33,14 +43,39 @@ export default function AppButton({
 
 const styles = StyleSheet.create({
     button: {
-        borderRadius: 8,
+        borderRadius: 10,
         marginVertical: 6,
+
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 3,
+        },
+        shadowOpacity: 0.18,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    containedButton: {
+        borderBottomWidth: 4,
+        borderBottomColor: "#36546e",
+    },
+    outlinedButton: {
+        backgroundColor: "#ffffff",
+        borderWidth: 1,
+        borderColor: "#4b6f8f",
+        borderBottomWidth: 4,
+        borderBottomColor: "#c7d3dc",
+    },
+    disabledButton: {
+        borderBottomColor: "#7b8794",
+        shadowOpacity: 0.08,
+        elevation: 1,
     },
     content: {
         height: 44,
     },
     label: {
         fontSize: 15,
-        fontWeight: "600",
+        fontWeight: "700",
     },
 });

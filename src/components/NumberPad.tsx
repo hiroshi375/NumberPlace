@@ -1,12 +1,11 @@
-import { StyleSheet, View } from "react-native";
-import { Button } from "react-native-paper";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type Props = {
     onPressNumber: (value: number) => void;
     onClearCell: () => void;
     isMemoMode: boolean;
     onToggleMemoMode: () => void;
-    disabledNumbers?: Set<number>;
+    disabledNumbers: Set<number>;
 };
 
 export default function NumberPad({
@@ -14,54 +13,70 @@ export default function NumberPad({
     onClearCell,
     isMemoMode,
     onToggleMemoMode,
-    disabledNumbers = new Set<number>(),
+    disabledNumbers,
 }: Props) {
     return (
         <View style={styles.container}>
-            <View style={styles.numberGrid}>
+            <View style={styles.numberRow}>
                 {Array.from({ length: 9 }, (_, index) => {
-                    const value = index + 1;
-                    const isDisabled = disabledNumbers.has(value);
+                    const number = index + 1;
+                    const isDisabled = disabledNumbers.has(number);
 
                     return (
-                        <Button
-                            key={value}
-                            mode="contained"
-                            style={[
+                        <Pressable
+                            key={number}
+                            disabled={isDisabled}
+                            onPress={() => onPressNumber(number)}
+                            style={({ pressed }) => [
                                 styles.numberButton,
                                 isDisabled && styles.disabledNumberButton,
+                                pressed &&
+                                    !isDisabled &&
+                                    styles.numberButtonPressed,
                             ]}
-                            contentStyle={styles.numberButtonContent}
-                            buttonColor={isDisabled ? "#d1d5db" : "#4b6f8f"}
-                            textColor={isDisabled ? "#6b7280" : "#ffffff"}
-                            disabled={isDisabled}
-                            onPress={() => onPressNumber(value)}
                         >
-                            {value}
-                        </Button>
+                            <Text
+                                style={[
+                                    styles.numberButtonText,
+                                    isDisabled &&
+                                        styles.disabledNumberButtonText,
+                                ]}
+                            >
+                                {number}
+                            </Text>
+                        </Pressable>
                     );
                 })}
             </View>
 
-            <View style={styles.actionRow}>
-                <Button
-                    mode={isMemoMode ? "contained" : "outlined"}
-                    style={styles.actionButton}
-                    buttonColor={isMemoMode ? "#6b8faf" : undefined}
-                    textColor={isMemoMode ? "#ffffff" : "#4b6f8f"}
+            <View style={styles.subActionRow}>
+                <Pressable
                     onPress={onToggleMemoMode}
+                    style={({ pressed }) => [
+                        styles.subActionButton,
+                        isMemoMode && styles.memoActiveButton,
+                        pressed && styles.subActionButtonPressed,
+                    ]}
                 >
-                    メモ
-                </Button>
+                    <Text
+                        style={[
+                            styles.subActionButtonText,
+                            isMemoMode && styles.memoActiveButtonText,
+                        ]}
+                    >
+                        メモ
+                    </Text>
+                </Pressable>
 
-                <Button
-                    mode="outlined"
-                    style={styles.actionButton}
-                    textColor="#d93025"
+                <Pressable
                     onPress={onClearCell}
+                    style={({ pressed }) => [
+                        styles.subActionButton,
+                        pressed && styles.subActionButtonPressed,
+                    ]}
                 >
-                    クリア
-                </Button>
+                    <Text style={styles.subActionButtonText}>クリア</Text>
+                </Pressable>
             </View>
         </View>
     );
@@ -69,32 +84,104 @@ export default function NumberPad({
 
 const styles = StyleSheet.create({
     container: {
-        marginTop: 16,
+        marginTop: 10,
     },
-    numberGrid: {
+    numberRow: {
         flexDirection: "row",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        gap: 8,
+        gap: 4,
     },
     numberButton: {
+        flex: 1,
+        height: 42,
         borderRadius: 8,
-        width: 58,
+        backgroundColor: "#4b6f8f",
+        alignItems: "center",
+        justifyContent: "center",
+
+        borderBottomWidth: 4,
+        borderBottomColor: "#36546e",
+
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 3,
+        },
+        shadowOpacity: 0.18,
+        shadowRadius: 4,
+        elevation: 4,
+    },
+    numberButtonPressed: {
+        transform: [{ translateY: 2 }],
+        borderBottomWidth: 2,
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.1,
+        elevation: 2,
+    },
+    numberButtonText: {
+        color: "#ffffff",
+        fontSize: 18,
+        fontWeight: "800",
     },
     disabledNumberButton: {
-        opacity: 0.7,
+        backgroundColor: "#cbd5e1",
+        borderBottomColor: "#94a3b8",
+        shadowOpacity: 0.06,
+        elevation: 1,
     },
-    numberButtonContent: {
-        height: 42,
+    disabledNumberButtonText: {
+        color: "#64748b",
     },
-    actionRow: {
+    subActionRow: {
         flexDirection: "row",
-        justifyContent: "center",
-        marginTop: 12,
-        gap: 12,
+        gap: 8,
+        marginTop: 8,
     },
-    actionButton: {
-        borderRadius: 8,
-        width: 110,
+    subActionButton: {
+        flex: 1,
+        height: 42,
+        borderRadius: 10,
+        backgroundColor: "#ffffff",
+        borderWidth: 1,
+        borderColor: "#4b6f8f",
+        alignItems: "center",
+        justifyContent: "center",
+
+        borderBottomWidth: 4,
+        borderBottomColor: "#c7d3dc",
+
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 3,
+        },
+        shadowOpacity: 0.14,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    subActionButtonPressed: {
+        transform: [{ translateY: 2 }],
+        borderBottomWidth: 2,
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.08,
+        elevation: 1,
+    },
+    subActionButtonText: {
+        color: "#4b6f8f",
+        fontSize: 15,
+        fontWeight: "700",
+    },
+    memoActiveButton: {
+        backgroundColor: "#4b6f8f",
+        borderColor: "#4b6f8f",
+        borderBottomColor: "#36546e",
+    },
+    memoActiveButtonText: {
+        color: "#ffffff",
     },
 });

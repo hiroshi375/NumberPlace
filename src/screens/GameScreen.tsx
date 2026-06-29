@@ -47,9 +47,8 @@ type StageData = {
 export default function GameScreen({ route, navigation }: Props) {
     const { width } = useWindowDimensions();
 
-    const screenHorizontalPadding = 8 * 2;
+    const screenHorizontalPadding = 12 * 2;
     const boardSize = width - screenHorizontalPadding;
-
     const { stageId } = route.params;
 
     const [stage, setStage] = useState<StageData | null>(null);
@@ -584,7 +583,7 @@ const styles = StyleSheet.create({
         marginBottom: 12,
     },
     content: {
-        padding: 8,
+        padding: 12,
         paddingBottom: 24,
     },
     infoCard: {
